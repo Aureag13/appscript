@@ -1,0 +1,127 @@
+function extrairEmail() {
+
+  var planilha = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONTROLE")
+  var marcador = GmailApp.getUserLabelByName("Extrair")
+  var lista = marcador.getThreads()
+  const pasta = "1z5J68ep8MOFPLM_F7k5g6dFsriaerymX"
+
+  for(var i = 0; i<lista.length;i++){
+
+    var mensagens = lista[i].getMessages()
+
+    for(var j = 0; j<mensagens.length; j++){
+
+      var mensagem = mensagens[j]
+
+      var data = Utilities.formatDate(mensagem.getDate(),"GMT-3","dd/MM/yyyy")
+      
+      if(mensagem.getFrom().indexOf("<")!=-1){
+        var remetente = mensagem.getFrom().substring(mensagem.getFrom().indexOf("<")+1,mensagem.getFrom().indexOf(">"))
+      }
+      else{
+        var remetente = mensagem.getFrom()
+      }
+
+      var anexos = mensagem.getAttachments({includeInlineImages:false,includeAttachmentes:true})
+
+      for(var k = 0; k<anexos.length; k++){
+         
+        var anexo = anexos[k].getName()
+
+        if(anexo.indexOf(".xml")!=-1){
+          
+          Drive.Files.insert({
+          title:anexos[k].getName(),
+          mimeType:anexos[k].getContentType(),
+          parents:[{id:pasta}]
+          },
+          anexos[k].copyBlob()
+          )
+
+          var arquivos = DriveApp.getFolderById(pasta).getFilesByName(anexo)
+
+          if(arquivos.hasNext()){
+            var arquivo = arquivos.next()
+          }
+          if(arquivo != null){
+            var xml = arquivo.getBlob().getDataAsString()
+            var raiz = XmlService.parse(xml).getRootElement()
+            var ns = raiz.getNamespace()
+            
+            var chave           = raiz.getChild("NFe",ns).getChild("infNFe",ns).getAttribute("Id").getValue()
+            if(chave.indexOf("NFe")!= -1){ chave = chave.substring(chave.indexOf("NFe")+3)}
+
+            var numero          = raiz.getChild("NFe",ns).getChild("infNFe",ns).getChild("ide",ns).getChild("nNF",ns).getValue()
+
+            var dataEmissao     = raiz.getChild("NFe",ns).getChild("infNFe",ns).getChild("ide",ns).getChild("dhEmi",ns).getValue()
+              var dia  = dataEmissao.substr(8,2);
+              var mes  = dataEmissao.split("-")[1];
+              var ano  = dataEmissao.split("-")[0];
+              dataEmissao = dia+"/"+mes+"/"+ano      
+            
+            var cnpjFornecedor  = raiz.getChild("NFe",ns).getChild("infNFe",ns).getChild("emit",ns).getChild("CNPJ",ns).getValue()
+
+            var razaoFornecedor = raiz.getChild("NFe",ns).getChild("infNFe",ns).getChild("emit",ns).getChild("xNome",ns).getValue()
+
+            var cnpjEmpresa     = raiz.getChild("NFe",ns).getChild("infNFe",ns).getChild("dest",ns).getChild("CPF",ns).getValue()
+            var filial = ""
+            switch(cnpjFornecedor){
+              case "23797376003270":
+                  filial = 85
+              break
+              case "29763339000121":
+                  filial = 105
+              break
+              default:
+                  filial = 05
+              break
+            }
+            
+            planilha.appendRow([data,remetente,anexo,chave,numero,dataEmissao,cnpjFornecedor,razaoFornecedor,cnpjEmpresa,filial])
+          }
+        }
+        
+      }
+     
+    }
+   
+  }
+  
+}
+
+function enviarMail(){
+
+  var planilha = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONTROLE")
+  var ultimaLinha = planilha.getRange("A1:A1000").getNextDataCell(SpreadsheetApp.Direction.DOWN).getRowIndex()-1
+  var intervalo = planilha.getRange(2,1,ultimaLinha,11)
+  var lista = intervalo.getValues()
+
+  for(var i = 0;i < lista.length;i++){
+    for(var j = 0;j <= 11;j++){
+      //var modelo = HtmlService.createTemplateFromFile("modelo")
+      //modelo.nota = lista[i][4]
+      //var html = modelo.evaluate().getContent()
+      var html ='<!DOCTYPE html><html><head><base target="_top"></head><body><style type="text/css">'+
+'table.tftable {font-size:12px;color:#333333;width:100%;border-width: 1px;border-color: #729ea5;border-collapse: collapse;}'+
+'table.tftable th {font-size:12px;background-color:#acc8cc;border-width: 1px;padding: 8px;border-style: solid;border-color: #729ea5;text-align:left;}'+
+'table.tftable tr {background-color:#d4e3e5;}'+
+'table.tftable td {font-size:12px;border-width: 1px;padding: 8px;border-style: solid;border-color: #729ea5;}'+
+'</style><table id="tfhover" class="tftable" border="1">'+
+'<tr><th>Nota</th><th>Chave</th><th>Emissão</th><th>CNPJ Fornecedor</th><th>Fornecedor</th><th>Filial</th><th>Usuário</th><th>Data Envio</th></tr>'+
+'<tr><td>Linha:2 Célula:1</td><td>Linha:2 Célula:2</td><td>Linha:2 Célula:3</td><td>Linha:2 Célula:4</td><td>Linha:2 Célula:5</td><td>Linha:2'+ 'Célula:6</td><td>Linha:2 Célula:7</td><td>Linha:2 Célula:8</td></tr>'+
+/*<tr><td>Linha:3 Célula:1</td><td>Linha:3 Célula:2</td><td>Linha:3 Célula:3</td><td>Linha:3 Célula:4</td><td>Linha:3 Célula:5</td><td>Linha:3 Célula:6</td><td>Linha:3 Célula:7</td><td>Linha:3 Célula:8</td></tr>
+<tr><td>Linha:4 Célula:1</td><td>Linha:4 Célula:2</td><td>Linha:4 Célula:3</td><td>Linha:4 Célula:4</td><td>Linha:4 Célula:5</td><td>Linha:4 Célula:6</td><td>Linha:4 Célula:7</td><td>Linha:4 Célula:8</td></tr>*/
+'</table></body></html>'
+
+    }
+  }
+
+  var mensagem = {
+    to:"aurea.contabilpn@gmail.com",
+    subject:"Teste",
+    name:"Novo",
+    htmlBody: html
+  }
+
+  MailApp.sendEmail(mensagem)
+}
