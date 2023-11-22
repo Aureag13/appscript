@@ -8,6 +8,7 @@ function extrairEmail() {
   for(var i = 0; i<lista.length;i++){
 
     var mensagens = lista[i].getMessages()
+    lista[i].removeLabel(marcador)
 
     for(var j = 0; j<mensagens.length; j++){
 
@@ -37,6 +38,8 @@ function extrairEmail() {
           },
           anexos[k].copyBlob()
           )
+
+          
 
           var arquivos = DriveApp.getFolderById(pasta).getFilesByName(anexo)
 
@@ -78,6 +81,8 @@ function extrairEmail() {
             }
             
             planilha.appendRow([data,remetente,anexo,chave,numero,dataEmissao,cnpjFornecedor,razaoFornecedor,cnpjEmpresa,filial])
+            var id = arquivo.getId()
+            Drive.Files.remove(id)
           }
         }
         
@@ -89,6 +94,9 @@ function extrairEmail() {
   
 }
 
+        
+        
+
 function enviarMail(){
 
   var planilha = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CONTROLE")
@@ -96,31 +104,24 @@ function enviarMail(){
   var intervalo = planilha.getRange(2,1,ultimaLinha,11)
   var lista = intervalo.getValues()
 
-  for(var i = 0;i < lista.length;i++){
-    for(var j = 0;j <= 11;j++){
-      //var modelo = HtmlService.createTemplateFromFile("modelo")
-      //modelo.nota = lista[i][4]
-      //var html = modelo.evaluate().getContent()
-      var html ='<!DOCTYPE html><html><head><base target="_top"></head><body><style type="text/css">'+
-'table.tftable {font-size:12px;color:#333333;width:100%;border-width: 1px;border-color: #729ea5;border-collapse: collapse;}'+
-'table.tftable th {font-size:12px;background-color:#acc8cc;border-width: 1px;padding: 8px;border-style: solid;border-color: #729ea5;text-align:left;}'+
-'table.tftable tr {background-color:#d4e3e5;}'+
-'table.tftable td {font-size:12px;border-width: 1px;padding: 8px;border-style: solid;border-color: #729ea5;}'+
-'</style><table id="tfhover" class="tftable" border="1">'+
-'<tr><th>Nota</th><th>Chave</th><th>Emissão</th><th>CNPJ Fornecedor</th><th>Fornecedor</th><th>Filial</th><th>Usuário</th><th>Data Envio</th></tr>'+
-'<tr><td>Linha:2 Célula:1</td><td>Linha:2 Célula:2</td><td>Linha:2 Célula:3</td><td>Linha:2 Célula:4</td><td>Linha:2 Célula:5</td><td>Linha:2'+ 'Célula:6</td><td>Linha:2 Célula:7</td><td>Linha:2 Célula:8</td></tr>'+
-/*<tr><td>Linha:3 Célula:1</td><td>Linha:3 Célula:2</td><td>Linha:3 Célula:3</td><td>Linha:3 Célula:4</td><td>Linha:3 Célula:5</td><td>Linha:3 Célula:6</td><td>Linha:3 Célula:7</td><td>Linha:3 Célula:8</td></tr>
-<tr><td>Linha:4 Célula:1</td><td>Linha:4 Célula:2</td><td>Linha:4 Célula:3</td><td>Linha:4 Célula:4</td><td>Linha:4 Célula:5</td><td>Linha:4 Célula:6</td><td>Linha:4 Célula:7</td><td>Linha:4 Célula:8</td></tr>*/
-'</table></body></html>'
+   var html ="<table style=\"border-collapse:collapse;text-align:center\" border=1 cellpadding=5 >"+
+    "<th style='background-color: #778ca3'>CNPJ Fornecedor</th><th  style='background-color: #778ca3'>Fornecedor</th><th  style='background-color: #778ca3'>Filial</th><th  style='background-color: #778ca3'>Emissão</th><th  style='background-color: #778ca3'>Nota</th><th  style='background-color: #778ca3'>Chave</th><th style='background-color: #778ca3'>Data Envio</th><th  style='background-color: #778ca3'>Usuário</th>"
 
-    }
+  for(var i = 0;i < lista.length;i++){
+   // for(var j = 0;j <= 11;j++){
+      
+      html +='<tr><td style="background-color: #d1d8e0">'+lista[i][6]+'</td><td style="background-color: #d1d8e0">'+lista[i][7]+'</td><td style="background-color: #d1d8e0">'+lista[i][9]+'</td><td style="background-color: #d1d8e0">'+Utilities.formatDate(lista[i][5],"GMT-3","dd/MM/yyyy")+'</td><td style="background-color: #d1d8e0">'+lista[i][4]+'</td><td style="background-color: #d1d8e0">'+lista[i][3]+'</td><td style="background-color: #d1d8e0">'+Utilities.formatDate(lista[i][0],"GMT-3","dd/MM/yyyy")+'</td><td style="background-color: #d1d8e0">'+lista[i][1]+'</td></tr>'
+     
+   // }
   }
+
+  html += "</table>"
 
   var mensagem = {
     to:"aurea.contabilpn@gmail.com",
     subject:"Teste",
     name:"Novo",
-    htmlBody: html
+    htmlBody: "Boa Tarde <br/><br/> Relatorio Mensal de XML:<br/><br/>"+html
   }
 
   MailApp.sendEmail(mensagem)
